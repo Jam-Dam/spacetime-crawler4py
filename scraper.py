@@ -195,6 +195,18 @@ def is_valid(url):
         if domain == "isg.ics.uci.edu" and path.startswith("/events"):
             return False
 
+        #flamingo trap
+        if domain == "flamingo.ics.uci.edu":
+            return False
+
+        #ngs trap
+        if domain == "ngs.ics.uci.edu":
+            return False
+
+        #wics trap
+        if domain == "wics.ics.uci.edu":
+            return False
+            
         #File type filtering
         if re.match(
                 r".*\.(css|js|bmp|gif|jpe?g|ico"
