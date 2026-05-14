@@ -5,6 +5,7 @@ from urllib.parse import urlparse, urljoin, urldefrag, parse_qs
 
 from bs4 import BeautifulSoup
 
+#explicitly allowed domains
 ALLOWED_DOMAINS = {
     "ics.uci.edu",
     "cs.uci.edu",
@@ -12,15 +13,18 @@ ALLOWED_DOMAINS = {
     "stat.uci.edu",
 }
 
+#expliciitly allowed prefixes
 ALLOWED_PREFIXES = {
     "today.uci.edu": "/department/information_computer_sciences/",
 }
 
+#where the files we are going to write to will be
 UNIQUE_PAGES_FILE = "unique_pages.txt"
 
 REPORT_DATA_FILE = "report_data.json"
 REPORT_SUMMARY_FILE = "report_summary.txt"
 
+#list of stop words
 STOP_WORDS = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an",
     "and", "any", "are", "as", "at", "be", "because", "been", "before",
@@ -40,12 +44,15 @@ STOP_WORDS = {
 }
 
 def scraper(url, resp):
+    #the report json is updated at the start of each cycle.
     update_report(url, resp)
 
+    #get all of the links on the page
     links = extract_next_links(url, resp)
 
     valid_links = []
 
+    #for link in links, check if each one is valid, if it is add it to the return list
     for link in links:
         if isinstance(link, str) and is_valid(link):
             valid_links.append(link)
@@ -63,6 +70,8 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    
+    #is our response valid
     if resp is None:
         return []
 
@@ -84,6 +93,7 @@ def extract_next_links(url, resp):
     if len(content) > 5000000:
         return []
 
+    #turn response into something usable
     try:
         soup = BeautifulSoup(content, "lxml")
     except Exception:
@@ -127,12 +137,16 @@ def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+
+    #long line of ifs to check if we can use the url
     try:
         parsed = urlparse(url)
 
+        #if url isnt http/https dont use
         if parsed.scheme not in {"http", "https"}:
             return False
 
+        #split url into domain, path, and query
         domain = parsed.netloc.lower()
         path = parsed.path.lower()
         query = parsed.query.lower()
@@ -207,7 +221,7 @@ def is_valid(url):
         if domain == "wics.ics.uci.edu":
             return False
             
-        #File type filtering
+        #File type filtering | if we see these file types, don't use
         if re.match(
                 r".*\.(css|js|bmp|gif|jpe?g|ico"
                 r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -233,6 +247,7 @@ def is_valid(url):
         if len(query_params) > 3:
             return False
 
+        #if we see these in the query, don't use
         bad_query_keys = {
             "replytocom",
             "share",
@@ -303,11 +318,15 @@ def is_valid(url):
 
     except (TypeError, ValueError):
         return False
+"""
+Report Functions
+"""
 
 def update_report(url, resp):
     """
     Updates report_data.json and report_summary.txt after each successfully crawled page.
 
+    
     Tracks:
     1. Unique pages found
     2. Longest page by word count
@@ -333,7 +352,7 @@ def update_report(url, resp):
 
     final_url = resp.raw_response.url if resp.raw_response.url else url
 
-    # Assignment says uniqueness ignores fragments
+    #uniqueness ignores fragments
     final_url, _ = urldefrag(final_url)
     final_url = final_url.strip()
 
@@ -342,7 +361,8 @@ def update_report(url, resp):
 
     if not is_valid(final_url):
         return
-
+    
+    #same beautifulsoup stuff to make the url usable
     try:
         soup = BeautifulSoup(content, "lxml")
     except Exception:
@@ -399,6 +419,10 @@ def update_report(url, resp):
 
     save_report_data(data)
     write_report_summary(data)
+
+"""
+Report Helper function
+"""
 
 def extract_all_words(text):
     """
